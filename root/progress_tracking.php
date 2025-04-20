@@ -60,7 +60,7 @@ $result = mysqli_query($conn, $query);
     <li class="nav-item <?= basename($_SERVER['PHP_SELF']) == 'progress_tracking.php' ? 'active' : '' ?>">
       <a href="progress_tracking.php">🛠 Progress Tracking</a>
     </li>
-    <li class="nav-item <?= basename($_SERVER['PHP_SELF']) == 'announcement.html' ? 'active' : '' ?>">
+    <li class="nav-item <?= basename($_SERVER['PHP_SELF']) == 'announcement.php' ? 'active' : '' ?>">
       <a href="announcement.html">🔔 Announcements</a>
     </li>
     <li class="nav-item">
