@@ -14,32 +14,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("s", $email_or_phone);
     $stmt->execute();
     $result = $stmt->get_result();
-
-    // Check if user exists
+    
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
 
-        // Verify password
-        if (password_verify($password, $user['password_hash'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['first_name'] . " " . $user['last_name'];
-            $_SESSION['user_role'] = $user['role']; // Store role in session
+    // ✅ Place the password_verify here
+    if (password_verify($password, $user['password_hash'])) {
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_name'] = $user['first_name'] . " " . $user['last_name'];
+        $_SESSION['user_role'] = $user['role'];
 
-            // Redirect based on role
-            if ($user['role'] == 'admin') {
-                header("Location: dashboard.html");
-            } else {
-                // Assuming any non-admin is a resident
-                header("Location: resident_dashboard.php");
-            }
-            exit;
+        // Redirect based on role
+        if ($user['role'] === 'admin') {
+            header("Location: dashboard.php");
         } else {
-            $error = "Invalid email/phone or password.";
+            header("Location: resident_dashboard.php");
         }
+        exit;
     } else {
-        $error = "No account found with this email or phone.";
+        $error = "Invalid email/phone or password.";
     }
+} else {
+    $error = "No account found with this email or phone.";
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
