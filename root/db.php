@@ -1,7 +1,7 @@
 <?php
 // Railway MySQL Credentials
-$host = "mysql.railway.internal"; // Replace with your actual Railway host
-$port = 3306; // Replace with the Railway port
+$host = "centerbeam.proxy.rlwy.net"; // Replace with your actual Railway host
+$port = 46637; // Replace with the Railway port
 $user = "root"; // Or your Railway-generated username
 $password = "zeAxeZUrCXRasGgPorApVkRTkleygjzy"; // Railway-generated password
 $dbname = "railway"; // Usually 'railway' by default
