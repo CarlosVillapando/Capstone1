@@ -2,6 +2,11 @@
 session_start();
 require 'db.php';
 
+// Pagination setup
+$limit = 5; // cards per page
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
+
 // Handle CREATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create') {
     $title = mysqli_real_escape_string($conn, $_POST['title']);
@@ -18,8 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit();
 }
 
-// Fetch announcements
-$result = mysqli_query($conn, "SELECT * FROM announcements WHERE archived = 0 ORDER BY date DESC");
+// Fetch total count for pagination
+$totalQuery = mysqli_query($conn, "SELECT COUNT(*) AS total FROM announcements WHERE archived = 0");
+$totalRow = mysqli_fetch_assoc($totalQuery);
+$totalAnnouncements = $totalRow['total'];
+$totalPages = ceil($totalAnnouncements / $limit);
+
+// Fetch paginated announcements
+$result = mysqli_query($conn, "SELECT * FROM announcements WHERE archived = 0 ORDER BY date DESC LIMIT $limit OFFSET $offset");
 ?>
 
 <!DOCTYPE html>
@@ -80,6 +91,16 @@ $result = mysqli_query($conn, "SELECT * FROM announcements WHERE archived = 0 OR
         </div>
       </div>
       <?php endwhile; ?>
+
+      <div class="pagination">
+        <?php if ($page > 1): ?>
+          <a href="?page=<?= $page - 1 ?>">&laquo; Prev</a>
+        <?php endif; ?>
+        <span>Page <?= $page ?> of <?= $totalPages ?></span>
+        <?php if ($page < $totalPages): ?>
+          <a href="?page=<?= $page + 1 ?>">Next &raquo;</a>
+        <?php endif; ?>
+      </div>
     </section>
   </div>
 
