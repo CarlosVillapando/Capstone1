@@ -37,6 +37,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (!empty($_FILES['proof']['name'])) {
                 $target_dir = "uploads/"; // Ensure this directory exists and is writable
                 $proof_file = $target_dir . basename($_FILES["proof"]["name"]);
+                $target_dir = "uploads/";
+                if (!is_dir($target_dir)) {
+                    mkdir($target_dir, 0777, true); // create uploads folder with permissions
+                }
                 move_uploaded_file($_FILES["proof"]["tmp_name"], $proof_file);
             }
 
