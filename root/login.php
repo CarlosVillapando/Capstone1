@@ -1,33 +1,40 @@
 <?php
 session_start();
-require 'db.php'; // Database connection
+require 'db.php'; // Connect to your Railway MySQL DB
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+$error = ''; // Initialize error message
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['email'], $_POST['password'])) {
     $email_or_phone = trim($_POST['email']);
     $password = trim($_POST['password']);
 
+    // Determine if input is email or phone
     $column = filter_var($email_or_phone, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone_number';
 
+    // Prepare and execute query
     $stmt = $conn->prepare("SELECT id, first_name, last_name, password_hash, role FROM users WHERE $column = ?");
     $stmt->bind_param("s", $email_or_phone);
     $stmt->execute();
     $result = $stmt->get_result();
 
+    // Check if user exists
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
 
+        // Verify password
         if (password_verify($password, $user['password_hash'])) {
             $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['first_name'] . " " . $user['last_name'];
+            $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
             $_SESSION['user_role'] = $user['role'];
 
-            // ✅ Activity Logging
+            // Log activity
             $desc = "{$user['role']}: {$user['first_name']} {$user['last_name']} logged in.";
             $log = $conn->prepare("INSERT INTO user_activity (user_id, activity_type, description, role) VALUES (?, 'login', ?, ?)");
             $log->bind_param("iss", $user['id'], $desc, $user['role']);
             $log->execute();
             $log->close();
 
+            // Redirect
             if ($user['role'] === 'admin') {
                 header("Location: dashboard.php");
             } else {
@@ -40,13 +47,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         $error = "No account found with this email or phone.";
     }
+
+    $stmt->close();
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StreetFix - Login</title>
   <link rel="stylesheet" href="login.css">
@@ -74,7 +83,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <h2>Sign In</h2>
 
     <?php if (!empty($error)) : ?>
-      <p style="color:red;"><?php echo $error; ?></p>
+      <p style="color:red;"><?php echo htmlspecialchars($error); ?></p>
     <?php endif; ?>
 
     <form action="login.php" method="POST">
@@ -96,3 +105,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </div>
 </body>
 </html>
+
