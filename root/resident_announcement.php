@@ -41,7 +41,7 @@ $announcements = mysqli_query($conn, "SELECT * FROM announcements ORDER BY date 
     <ul>
       <li><a href="resident_dashboard.php">🏠 Dashboard</a></li>
       <li class="active"><a href="resident_announcement.php">🔔 Announcements</a></li>
-      <li><a href="#">📈 Report & Analytics</a></li>
+      <li><a href="reports_analytics.php">📈 Report & Analytics</a></li>
     </ul>
   </div>
 
@@ -50,7 +50,7 @@ $announcements = mysqli_query($conn, "SELECT * FROM announcements ORDER BY date 
       <div class="user-dropdown" onclick="toggleDropdown()">
         <div class="user-info">
           <span class="avatar">👤</span>
-          <span><?= htmlspecialchars($user['first_name']) ?></span>
+          <span><?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) ?></span>
           <span class="dropdown">▾</span>
         </div>
         <div id="userDropdown" class="dropdown-content">
@@ -91,7 +91,7 @@ $announcements = mysqli_query($conn, "SELECT * FROM announcements ORDER BY date 
 
   <div id="profileModal" class="modal">
     <div class="modal-content">
-      <span class="close">&times;</span>
+      <span class="close" onclick="modal.style.display = 'none'">&times;</span>
       <h2>Your Profile</h2>
       <div class="profile-info">
         <div class="profile-avatar">👤</div>
@@ -105,7 +105,7 @@ $announcements = mysqli_query($conn, "SELECT * FROM announcements ORDER BY date 
         </div>
       </div>
       <div class="profile-actions">
-        <button class="close-btn">Close</button>
+        <button class="close-btn" onclick="modal.style.display = 'none'">Close</button>
       </div>
     </div>
   </div>
@@ -117,8 +117,6 @@ $announcements = mysqli_query($conn, "SELECT * FROM announcements ORDER BY date 
 
     const modal = document.getElementById("profileModal");
     const viewProfileLink = document.getElementById("viewProfileLink");
-    const closeBtn = document.querySelector(".close");
-    const closeModalBtn = document.querySelector(".close-btn");
 
     viewProfileLink.addEventListener("click", function(e) {
       e.preventDefault();
@@ -126,16 +124,8 @@ $announcements = mysqli_query($conn, "SELECT * FROM announcements ORDER BY date 
       document.getElementById("userDropdown").classList.remove("show");
     });
 
-    closeBtn.addEventListener("click", function() {
-      modal.style.display = "none";
-    });
-
-    closeModalBtn.addEventListener("click", function() {
-      modal.style.display = "none";
-    });
-
     window.addEventListener("click", function(event) {
-      if (event.target == modal) {
+      if (event.target === modal) {
         modal.style.display = "none";
       }
       if (!event.target.matches('.user-dropdown') && !event.target.closest('.user-dropdown')) {
