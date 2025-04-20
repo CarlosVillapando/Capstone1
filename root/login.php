@@ -24,6 +24,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_name'] = $user['first_name'] . " " . $user['last_name'];
             $_SESSION['user_role'] = $user['role'];
 
+            // ✅ INSERT login activity
+            $desc = "{$user['role']}: {$user['first_name']} {$user['last_name']} logged in.";
+            $log = $conn->prepare("INSERT INTO user_activity (user_id, activity_type, description, role) VALUES (?, 'login', ?, ?)");
+            $log->bind_param("iss", $user['id'], $desc, $user['role']);
+            $log->execute();
+            $log->close();
+
             // ✅ Redirect based on role
             if ($user['role'] === 'admin') {
                 header("Location: dashboard.php");
@@ -40,6 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
