@@ -16,23 +16,16 @@ $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
-// Fetch report summary
+// Fetch report summary (based on full table for now)
 $summary = mysqli_fetch_assoc(mysqli_query($conn, "
   SELECT 
     COUNT(*) AS total_reports,
     SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) AS resolved,
     SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending
-  FROM issues WHERE user_id = $user_id
+  FROM issues
 "));
-
-// Fetch recent reports
-$reports = mysqli_query($conn, "
-  SELECT type, status, date_reported FROM issues
-  WHERE user_id = $user_id
-  ORDER BY date_reported DESC
-  LIMIT 3
-");
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -87,13 +80,21 @@ $reports = mysqli_query($conn, "
           </tr>
         </thead>
         <tbody>
-          <?php while($row = mysqli_fetch_assoc($reports)): ?>
           <tr>
-            <td><?= htmlspecialchars($row['type']) ?></td>
-            <td><?= htmlspecialchars($row['status']) ?></td>
-            <td><?= date('M j, Y', strtotime($row['date_reported'])) ?></td>
+            <td>Pothole on 5th Ave</td>
+            <td>Resolved</td>
+            <td>Apr 2, 2025</td>
           </tr>
-          <?php endwhile; ?>
+          <tr>
+            <td>Clogged Drain</td>
+            <td>Pending</td>
+            <td>Apr 3, 2025</td>
+          </tr>
+          <tr>
+            <td>Broken Street Light</td>
+            <td>Resolved</td>
+            <td>Apr 1, 2025</td>
+          </tr>
         </tbody>
       </table>
     </section>
@@ -151,8 +152,8 @@ $reports = mysqli_query($conn, "
       if (!event.target.matches('.user-dropdown') && !event.target.closest('.user-dropdown')) {
         var dropdowns = document.getElementsByClassName("dropdown-content");
         for (var i = 0; i < dropdowns.length; i++) {
-          if (dropdowns[i].classList.contains('show')) {
-            dropdowns[i].classList.remove('show');
+          if (dropdowns[i].classList.contains("show")) {
+            dropdowns[i].classList.remove("show");
           }
         }
       }
