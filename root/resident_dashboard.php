@@ -1,44 +1,37 @@
 <?php
 session_start();
-require 'db.php'; // Make sure this file establishes $conn
+require 'db.php';
 
-// Verify database connection
-if (!isset($conn) || $conn->connect_error) {
-    die("Database connection failed: " . ($conn->connect_error ?? "No connection"));
-}
-
-// Verify user is logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
 
-// Prepare the statement with error handling
-$sql = "SELECT first_name, last_name, email, created_at FROM users WHERE id = ?";
-$stmt = $conn->prepare($sql);
-
-if ($stmt === false) {
-    die("Error preparing query: " . $conn->error);
-}
-
-// Bind parameters and execute
 $user_id = $_SESSION['user_id'];
+
+// Fetch user info
+$stmt = $conn->prepare("SELECT first_name, last_name, email, address, created_at FROM users WHERE id = ?");
 $stmt->bind_param("i", $user_id);
-
-if (!$stmt->execute()) {
-    die("Error executing query: " . $stmt->error);
-}
-
-// Get results
+$stmt->execute();
 $result = $stmt->get_result();
-if (!$result) {
-    die("Error getting results: " . $stmt->error);
-}
-
 $user = $result->fetch_assoc();
-if (!$user) {
-    die("No user found with ID: $user_id");
-}
+
+// Fetch report summary
+$summary = mysqli_fetch_assoc(mysqli_query($conn, "
+  SELECT 
+    COUNT(*) AS total_reports,
+    SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) AS resolved,
+    SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending
+  FROM issues WHERE user_id = $user_id
+"));
+
+// Fetch recent reports
+$reports = mysqli_query($conn, "
+  SELECT type, status, date_reported FROM issues
+  WHERE user_id = $user_id
+  ORDER BY date_reported DESC
+  LIMIT 3
+");
 ?>
 
 <!DOCTYPE html>
@@ -77,9 +70,9 @@ if (!$user) {
     <section class="dashboard-overview">
       <h2>Dashboard Overview</h2>
       <div class="overview-cards">
-        <div class="card"><h3>Total Reports</h3><p>120</p></div>
-        <div class="card"><h3>Resolved</h3><p>87</p></div>
-        <div class="card"><h3>Pending</h3><p>33</p></div>
+        <div class="card"><h3>Total Reports</h3><p><?= $summary['total_reports'] ?></p></div>
+        <div class="card"><h3>Resolved</h3><p><?= $summary['resolved'] ?></p></div>
+        <div class="card"><h3>Pending</h3><p><?= $summary['pending'] ?></p></div>
       </div>
     </section>
 
@@ -94,21 +87,13 @@ if (!$user) {
           </tr>
         </thead>
         <tbody>
+          <?php while($row = mysqli_fetch_assoc($reports)): ?>
           <tr>
-            <td>Pothole on 5th Ave</td>
-            <td>Resolved</td>
-            <td>Apr 2, 2025</td>
+            <td><?= htmlspecialchars($row['type']) ?></td>
+            <td><?= htmlspecialchars($row['status']) ?></td>
+            <td><?= date('M j, Y', strtotime($row['date_reported'])) ?></td>
           </tr>
-          <tr>
-            <td>Clogged Drain</td>
-            <td>Pending</td>
-            <td>Apr 3, 2025</td>
-          </tr>
-          <tr>
-            <td>Broken Street Light</td>
-            <td>Resolved</td>
-            <td>Apr 1, 2025</td>
-          </tr>
+          <?php endwhile; ?>
         </tbody>
       </table>
     </section>
@@ -121,12 +106,12 @@ if (!$user) {
       <div class="profile-info">
         <div class="profile-avatar">👤</div>
         <div class="profile-details">
-          <p><strong>Name:</strong> <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></p>
-          <p><strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?></p>
-          <?php if (isset($user['address']) && !empty($user['address'])): ?>
-            <p><strong>Address:</strong> <?php echo htmlspecialchars($user['address']); ?></p>
+          <p><strong>Name:</strong> <?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) ?></p>
+          <p><strong>Email:</strong> <?= htmlspecialchars($user['email']) ?></p>
+          <?php if (!empty($user['address'])): ?>
+          <p><strong>Address:</strong> <?= htmlspecialchars($user['address']) ?></p>
           <?php endif; ?>
-          <p><strong>Member Since:</strong> <?php echo date("F Y", strtotime($user['created_at'])); ?></p>
+          <p><strong>Member Since:</strong> <?= date("F Y", strtotime($user['created_at'])) ?></p>
         </div>
       </div>
       <div class="profile-actions">
@@ -136,48 +121,38 @@ if (!$user) {
   </div>
 
   <script>
-    // Dropdown functionality
     function toggleDropdown() {
       document.getElementById("userDropdown").classList.toggle("show");
     }
-    
-    // Modal functionality
+
     const modal = document.getElementById("profileModal");
     const viewProfileLink = document.getElementById("viewProfileLink");
     const closeBtn = document.querySelector(".close");
     const closeModalBtn = document.querySelector(".close-btn");
-    
-    // Open modal when View Profile is clicked
+
     viewProfileLink.addEventListener("click", function(e) {
       e.preventDefault();
       modal.style.display = "block";
-      // Close dropdown if open
       document.getElementById("userDropdown").classList.remove("show");
     });
-    
-    // Close modal when X is clicked
+
     closeBtn.addEventListener("click", function() {
       modal.style.display = "none";
     });
-    
-    // Close modal when Close button is clicked
+
     closeModalBtn.addEventListener("click", function() {
       modal.style.display = "none";
     });
-    
-    // Close modal when clicking outside
+
     window.addEventListener("click", function(event) {
       if (event.target == modal) {
         modal.style.display = "none";
       }
-      
-      // Close dropdown if clicked outside (existing functionality)
       if (!event.target.matches('.user-dropdown') && !event.target.closest('.user-dropdown')) {
         var dropdowns = document.getElementsByClassName("dropdown-content");
         for (var i = 0; i < dropdowns.length; i++) {
-          var openDropdown = dropdowns[i];
-          if (openDropdown.classList.contains('show')) {
-            openDropdown.classList.remove('show');
+          if (dropdowns[i].classList.contains('show')) {
+            dropdowns[i].classList.remove('show');
           }
         }
       }
