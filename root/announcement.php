@@ -1,3 +1,26 @@
+<?php
+session_start();
+require 'db.php'; // your db.php should have $conn = new mysqli(...)
+
+$result = mysqli_query($conn, "SELECT * FROM announcements ORDER BY date DESC");
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
+    $title = mysqli_real_escape_string($conn, $_POST['title']);
+    $date = mysqli_real_escape_string($conn, $_POST['date']);
+    $category = mysqli_real_escape_string($conn, $_POST['category']);
+    $description = mysqli_real_escape_string($conn, $_POST['description']);
+
+    $stmt = $conn->prepare("INSERT INTO announcements (title, date, category, description) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $title, $date, $category, $description);
+    $stmt->execute();
+    $stmt->close();
+
+    header("Location: announcement.php");
+    exit();
+}
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,44 +72,22 @@
         </div>
       </div>
 
+    <?php while ($row = mysqli_fetch_assoc($result)): ?>
       <div class="announcement-card">
         <div class="announcement-header">
-          <span class="badge emergency">Emergency Alerts</span>
-          <h3>Emergency Road Closure on Kalayaan Street</h3>
+          <span class="badge <?= htmlspecialchars($row['category']) ?>">
+            <?= ucfirst(str_replace('_', ' ', $row['category'])) ?>
+          </span>
+          <h3><?= htmlspecialchars($row['title']) ?></h3>
         </div>
-        <p><strong>Date:</strong> 2025-04-05</p>
-        <p>Due to severe flooding, Kalayaan street will be temporarily closed for repairs.</p>
+        <p><strong>Date:</strong> <?= $row['date'] ?></p>
+        <p><?= htmlspecialchars($row['description']) ?></p>
         <div class="buttons">
           <button class="archive">Archive</button>
           <button class="edit">Edit</button>
         </div>
       </div>
-
-      <div class="announcement-card">
-        <div class="announcement-header">
-          <span class="badge infrastructure">Infrastructure Updates</span>
-          <h3>Drainage System Upgrades</h3>
-        </div>
-        <p><strong>Date:</strong> 2025-04-06</p>
-        <p>Maintenance teams will be upgrading the drainage system on Alley 17 to prevent flooding.</p>
-        <div class="buttons">
-          <button class="archive">Archive</button>
-          <button class="edit">Edit</button>
-        </div>
-      </div>
-
-      <div class="announcement-card">
-        <div class="announcement-header">
-          <span class="badge community">Community Updates</span>
-          <h3>Road Erosion & Sinkholes Alert</h3>
-        </div>
-        <p><strong>Date:</strong> 2025-04-07</p>
-        <p>Reports of road erosion and sinkholes have been noted in Barangay 201. Motorists and pedestrians are advised to avoid the affected areas.</p>
-        <div class="buttons">
-          <button class="archive">Archive</button>
-          <button class="edit">Edit</button>
-        </div>
-      </div>
+    <?php endwhile; ?>  
 
       <div class="pagination">
         <span>Page 1</span>
@@ -99,7 +100,7 @@
   <div id="announcementModal" class="modal">
     <div class="modal-content">
       <h2>Create New Announcement</h2>
-      <form id="announcementForm">
+      <form id="announcementForm" method="POST" action="announcement.php">
         <label for="title">Title</label>
         <input type="text" id="title" name="title" required>
 
@@ -207,7 +208,6 @@
     });
 
     document.getElementById("announcementForm").addEventListener("submit", function (e) {
-      e.preventDefault();
 
       const title = document.getElementById("title").value;
       const date = document.getElementById("date").value;
