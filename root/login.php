@@ -6,32 +6,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email_or_phone = trim($_POST['email']);
     $password = trim($_POST['password']);
 
-    // Check if input is an email or phone number
     $column = filter_var($email_or_phone, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone_number';
 
-    // Prepare SQL query - now including the role field
     $stmt = $conn->prepare("SELECT id, first_name, last_name, password_hash, role FROM users WHERE $column = ?");
     $stmt->bind_param("s", $email_or_phone);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
 
-        // ✅ password check
         if (password_verify($password, $user['password_hash'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_name'] = $user['first_name'] . " " . $user['last_name'];
             $_SESSION['user_role'] = $user['role'];
 
-            // ✅ INSERT login activity
+            // ✅ Activity Logging
             $desc = "{$user['role']}: {$user['first_name']} {$user['last_name']} logged in.";
             $log = $conn->prepare("INSERT INTO user_activity (user_id, activity_type, description, role) VALUES (?, 'login', ?, ?)");
             $log->bind_param("iss", $user['id'], $desc, $user['role']);
             $log->execute();
             $log->close();
 
-            // ✅ Redirect based on role
             if ($user['role'] === 'admin') {
                 header("Location: dashboard.php");
             } else {
@@ -41,13 +37,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             $error = "Invalid email/phone or password.";
         }
-
     } else {
         $error = "No account found with this email or phone.";
     }
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
