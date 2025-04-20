@@ -57,7 +57,7 @@ $activityResult = mysqli_query($conn, "
     <ul>
         <li class="active"><a href="dashboard.php">🏠 Dashboard</a></li>
         <li><a href="progress_tracking.php">🛠 Progress Tracking</a></li>
-        <li><a href="announcement.html">🔔 Announcements</a></li>
+        <li><a href="announcement.php">🔔 Announcements</a></li>
         <li><a href="reports_analytics.php">📈 Reports & Analytics</a></li>
     </ul>
   </div>
