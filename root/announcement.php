@@ -23,6 +23,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit();
 }
 
+// Handle EDIT
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit') {
+    $id = $_POST['id'];
+    $title = mysqli_real_escape_string($conn, $_POST['title']);
+    $date = mysqli_real_escape_string($conn, $_POST['date']);
+    $category = mysqli_real_escape_string($conn, $_POST['category']);
+    $description = mysqli_real_escape_string($conn, $_POST['description']);
+
+    $stmt = $conn->prepare("UPDATE announcements SET title = ?, date = ?, category = ?, description = ? WHERE id = ?");
+    $stmt->bind_param("ssssi", $title, $date, $category, $description, $id);
+    $stmt->execute();
+    $stmt->close();
+
+    header("Location: announcement.php");
+    exit();
+}
+
 // Fetch total count for pagination
 $totalQuery = mysqli_query($conn, "SELECT COUNT(*) AS total FROM announcements WHERE archived = 0");
 $totalRow = mysqli_fetch_assoc($totalQuery);
@@ -84,6 +101,15 @@ $result = mysqli_query($conn, "SELECT * FROM announcements WHERE archived = 0 OR
         <p><strong>Date:</strong> <?= $row['date'] ?></p>
         <p><?= htmlspecialchars($row['description']) ?></p>
         <div class="buttons">
+          <form method="POST" action="announcement.php" style="display:inline">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="id" value="<?= $row['id'] ?>">
+            <input type="hidden" name="title" value="<?= htmlspecialchars($row['title'], ENT_QUOTES) ?>">
+            <input type="hidden" name="date" value="<?= $row['date'] ?>">
+            <input type="hidden" name="category" value="<?= $row['category'] ?>">
+            <input type="hidden" name="description" value="<?= htmlspecialchars($row['description'], ENT_QUOTES) ?>">
+            <button type="submit" class="edit">Edit</button>
+          </form>
           <form method="POST" style="display:inline">
             <input type="hidden" name="archive_id" value="<?= $row['id'] ?>">
             <button type="submit" class="archive">Archive</button>
@@ -106,9 +132,10 @@ $result = mysqli_query($conn, "SELECT * FROM announcements WHERE archived = 0 OR
 
   <div id="announcementModal" class="modal">
     <div class="modal-content">
-      <h2>Create New Announcement</h2>
+      <h2 id="modalTitle">Create New Announcement</h2>
       <form id="announcementForm" method="POST" action="announcement.php">
-        <input type="hidden" name="action" value="create">
+        <input type="hidden" name="action" value="create" id="formAction">
+        <input type="hidden" name="id" id="editId">
         <label for="title">Title</label>
         <input type="text" id="title" name="title" required>
 
@@ -126,7 +153,7 @@ $result = mysqli_query($conn, "SELECT * FROM announcements WHERE archived = 0 OR
         <textarea id="description" name="description" rows="4" required></textarea>
 
         <div class="modal-actions">
-          <button type="submit" class="submit-btn">Submit</button>
+          <button type="submit" class="submit-btn">Save</button>
           <button type="button" class="cancel-btn" onclick="closeModal()">Cancel</button>
         </div>
       </form>
@@ -140,15 +167,38 @@ $result = mysqli_query($conn, "SELECT * FROM announcements WHERE archived = 0 OR
 
     const modal = document.getElementById("announcementModal");
     const createBtn = document.querySelector(".create-btn");
+    const form = document.getElementById("announcementForm");
+
     createBtn.onclick = () => {
+      document.getElementById("modalTitle").innerText = "Create New Announcement";
+      document.getElementById("formAction").value = "create";
+      document.getElementById("editId").value = "";
+      form.reset();
       modal.style.display = "block";
     };
+
     function closeModal() {
       modal.style.display = "none";
     }
+
     window.onclick = (e) => {
       if (e.target === modal) closeModal();
     };
+
+    document.querySelectorAll(".edit").forEach((btn) => {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        const form = this.closest("form");
+        document.getElementById("modalTitle").innerText = "Edit Announcement";
+        document.getElementById("formAction").value = "edit";
+        document.getElementById("editId").value = form.querySelector("input[name='id']").value;
+        document.getElementById("title").value = form.querySelector("input[name='title']").value;
+        document.getElementById("date").value = form.querySelector("input[name='date']").value;
+        document.getElementById("category").value = form.querySelector("input[name='category']").value;
+        document.getElementById("description").value = form.querySelector("input[name='description']").value;
+        modal.style.display = "block";
+      });
+    });
   </script>
 </body>
 </html>
