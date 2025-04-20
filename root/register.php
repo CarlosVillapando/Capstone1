@@ -16,11 +16,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
 
-    // Validate password match
     if ($password !== $confirm_password) {
         $error = "Passwords do not match!";
     } else {
-        // Check if email or phone already exists
         $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? OR phone_number = ?");
         $stmt->bind_param("ss", $email, $phone);
         $stmt->execute();
@@ -29,19 +27,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($stmt->num_rows > 0) {
             $error = "Email or phone number already registered!";
         } else {
-            // Hash password
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-            // Handle file upload (Proof of Residency)
+            // File upload (proof of residency)
             $proof_file = null;
             if (!empty($_FILES['proof']['name'])) {
-                $target_dir = "uploads/"; // Ensure this directory exists and is writable
                 $target_dir = "uploads/";
-            if (!is_dir($target_dir)) {
-                mkdir($target_dir, 0777, true); // create folder if missing
-            }
-            $proof_file = $target_dir . basename($_FILES["proof"]["name"]);
-            move_uploaded_file($_FILES["proof"]["tmp_name"], $proof_file);
+                if (!is_dir($target_dir)) {
+                    mkdir($target_dir, 0777, true);
+                }
+                $proof_file = $target_dir . basename($_FILES["proof"]["name"]);
+                move_uploaded_file($_FILES["proof"]["tmp_name"], $proof_file);
             }
 
             // Insert new user
@@ -49,10 +45,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bind_param("sssssssssss", $first_name, $last_name, $street_address, $city, $province, $zip, $phone, $email, $role, $proof_file, $password_hash);
 
             if ($stmt->execute()) {
-                $_SESSION['user_id'] = $stmt->insert_id;
+                $new_user_id = $stmt->insert_id;
+                $_SESSION['user_id'] = $new_user_id;
                 $_SESSION['user_name'] = $first_name . " " . $last_name;
-                
-                // Redirect to login page
+
+                // ✅ Log activity
+                $desc = "$role: $first_name $last_name created an account.";
+                $log = $conn->prepare("INSERT INTO user_activity (user_id, activity_type, description, role) VALUES (?, 'register', ?, ?)");
+                $log->bind_param("iss", $new_user_id, $desc, $role);
+                $log->execute();
+                $log->close();
+
+                // Redirect to login
                 header("Location: login.php?success=registered");
                 exit;
             } else {
@@ -63,7 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
-
+    
 <!-- Registration Form with PHP Error Handling -->
 <!DOCTYPE html>
 <html lang="en">
