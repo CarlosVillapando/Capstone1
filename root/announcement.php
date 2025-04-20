@@ -2,9 +2,8 @@
 session_start();
 require 'db.php'; // your db.php should have $conn = new mysqli(...)
 
-$result = mysqli_query($conn, "SELECT * FROM announcements ORDER BY date DESC");
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
+// Handle creation of new announcement
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title']) && !isset($_POST['edit_id'])) {
     $title = mysqli_real_escape_string($conn, $_POST['title']);
     $date = mysqli_real_escape_string($conn, $_POST['date']);
     $category = mysqli_real_escape_string($conn, $_POST['category']);
@@ -19,222 +18,161 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
     exit();
 }
 
+// Handle editing announcement
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
+    $edit_id = (int)$_POST['edit_id'];
+    $title = mysqli_real_escape_string($conn, $_POST['title']);
+    $date = mysqli_real_escape_string($conn, $_POST['date']);
+    $category = mysqli_real_escape_string($conn, $_POST['category']);
+    $description = mysqli_real_escape_string($conn, $_POST['description']);
+
+    $stmt = $conn->prepare("UPDATE announcements SET title = ?, date = ?, category = ?, description = ? WHERE id = ?");
+    $stmt->bind_param("ssssi", $title, $date, $category, $description, $edit_id);
+    $stmt->execute();
+    $stmt->close();
+
+    header("Location: announcement.php");
+    exit();
+}
+
+// Handle archive request
+if (isset($_POST['archive_id'])) {
+    $archive_id = (int)$_POST['archive_id'];
+    mysqli_query($conn, "UPDATE announcements SET archived = 1 WHERE id = $archive_id");
+    header("Location: announcement.php");
+    exit();
+}
+
+$result = mysqli_query($conn, "SELECT * FROM announcements WHERE archived = 0 ORDER BY date DESC");
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StreetFix Announcements</title>
-  <link rel="stylesheet" href="announcement.css" />
+  <link rel="stylesheet" href="announcement.css">
 </head>
 <body>
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>STREETFIX</h2>
-    <ul>
-      <li><a href="dashboard.php">🏠 Dashboard</a></li>
-      <li><a href="progress_tracking.php">🛠 Progress Tracking</a></li>
-      <li><a href="announcement.html">🔔 Announcements</a></li>
-      <li><a href="reports_analytics.php">📈 Reports & Analytics</a></li>
-    </ul>
-  </div>
+<div class="sidebar">
+  <h2>STREETFIX</h2>
+  <ul>
+    <li><a href="dashboard.php">🏠 Dashboard</a></li>
+    <li><a href="progress_tracking.php">🛠 Progress Tracking</a></li>
+    <li><a href="announcement.php" class="active">🔔 Announcements</a></li>
+    <li><a href="reports_analytics.php">📈 Reports & Analytics</a></li>
+  </ul>
+</div>
 
-  <!-- Main Content Wrapper -->
-  <div class="main-content">
-
-    <!-- Header (Admin Profile) -->
-    <header>
-      <div class="user-dropdown" onclick="toggleDropdown()">
-        <div class="user-info">
-          <span class="user-name">👤 Admin</span>
-          <span class="dropdown">▾</span>
-        </div>
-        <div id="userDropdown" class="dropdown-content">
-          <a href="logout.php">🚪 Logout</a>
-        </div>
+<div class="main-content">
+  <header>
+    <div class="user-dropdown" onclick="toggleDropdown()">
+      <div class="user-info">
+        <span class="user-name">👤 Admin</span>
+        <span class="dropdown">▾</span>
       </div>
-    </header>
-
-    <!-- Announcements Section -->
-    <section class="announcements">
-      <div class="top-bar">
-        <h2>Announcements</h2>
-        <div class="actions">
-          <button class="create-btn">Create New Announcement</button>
-          <select>
-            <option>All Announcements</option>
-            <option>Infrastructure Updates</option>
-            <option>Emergency Alerts</option>
-            <option>Community Updates</option>
-          </select>
-        </div>
+      <div id="userDropdown" class="dropdown-content">
+        <a href="logout.php">🚪 Logout</a>
       </div>
+    </div>
+  </header>
+
+  <section class="announcements">
+    <div class="top-bar">
+      <h2>Announcements</h2>
+      <div class="actions">
+        <button class="create-btn">Create New Announcement</button>
+      </div>
+    </div>
 
     <?php while ($row = mysqli_fetch_assoc($result)): ?>
-      <div class="announcement-card">
-        <div class="announcement-header">
-          <span class="badge <?= htmlspecialchars($row['category']) ?>">
-            <?= ucfirst(str_replace('_', ' ', $row['category'])) ?>
-          </span>
-          <h3><?= htmlspecialchars($row['title']) ?></h3>
-        </div>
-        <p><strong>Date:</strong> <?= $row['date'] ?></p>
-        <p><?= htmlspecialchars($row['description']) ?></p>
-        <div class="buttons">
-          <button class="archive">Archive</button>
-          <button class="edit">Edit</button>
-        </div>
+    <div class="announcement-card" data-id="<?= $row['id'] ?>">
+      <div class="announcement-header">
+        <span class="badge <?= htmlspecialchars($row['category']) ?>">
+          <?= ucfirst(str_replace('_', ' ', $row['category'])) ?>
+        </span>
+        <h3><?= htmlspecialchars($row['title']) ?></h3>
       </div>
-    <?php endwhile; ?>  
-
-      <div class="pagination">
-        <span>Page 1</span>
-        <button disabled>Next</button>
+      <p><strong>Date:</strong> <?= $row['date'] ?></p>
+      <p><?= htmlspecialchars($row['description']) ?></p>
+      <div class="buttons">
+        <form method="POST" style="display:inline;">
+          <input type="hidden" name="archive_id" value="<?= $row['id'] ?>">
+          <button type="submit" class="archive">Archive</button>
+        </form>
+        <button class="edit" 
+          data-id="<?= $row['id'] ?>" 
+          data-title="<?= htmlspecialchars($row['title']) ?>" 
+          data-date="<?= $row['date'] ?>" 
+          data-category="<?= $row['category'] ?>" 
+          data-description="<?= htmlspecialchars($row['description']) ?>">
+          Edit
+        </button>
       </div>
-    </section>
-  </div> <!-- End of .main-content -->
-
-  <!-- Modal Form for Creating Announcement -->
-  <div id="announcementModal" class="modal">
-    <div class="modal-content">
-      <h2>Create New Announcement</h2>
-      <form id="announcementForm" method="POST" action="announcement.php">
-        <label for="title">Title</label>
-        <input type="text" id="title" name="title" required>
-
-        <label for="date">Date</label>
-        <input type="date" id="date" name="date" required>
-
-        <label for="category">Category</label>
-        <select id="category" name="category" required>
-          <option value="infrastructure">Infrastructure Updates</option>
-          <option value="emergency">Emergency Alerts</option>
-          <option value="community">Community Updates</option>
-        </select>
-
-        <label for="description">Description</label>
-        <textarea id="description" name="description" rows="4" required></textarea>
-
-        <div class="modal-actions">
-          <button type="submit" class="submit-btn">Submit</button>
-          <button type="button" class="cancel-btn" onclick="closeModal()">Cancel</button>
-        </div>
-      </form>
     </div>
+    <?php endwhile; ?>
+  </section>
+</div>
+
+<!-- Modal Form -->
+<div id="announcementModal" class="modal">
+  <div class="modal-content">
+    <h2>Create / Edit Announcement</h2>
+    <form id="announcementForm" method="POST">
+      <input type="hidden" id="edit_id" name="edit_id">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" required>
+
+      <label for="date">Date</label>
+      <input type="date" id="date" name="date" required>
+
+      <label for="category">Category</label>
+      <select id="category" name="category" required>
+        <option value="infrastructure">Infrastructure Updates</option>
+        <option value="emergency">Emergency Alerts</option>
+        <option value="community">Community Updates</option>
+      </select>
+
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="4" required></textarea>
+
+      <div class="modal-actions">
+        <button type="submit">Save</button>
+        <button type="button" onclick="closeModal()">Cancel</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <!-- Scripts -->
-  <script>
-    function toggleDropdown() {
-      document.getElementById("userDropdown").classList.toggle("show");
-    }
+<script>
+  const modal = document.getElementById("announcementModal");
+  const form = document.getElementById("announcementForm");
 
-    // Close dropdown on outside click
-    window.addEventListener("click", function (event) {
-      if (!event.target.matches('.user-dropdown') && !event.target.closest('.user-dropdown')) {
-        var dropdowns = document.getElementsByClassName("dropdown-content");
-        for (var i = 0; i < dropdowns.length; i++) {
-          var openDropdown = dropdowns[i];
-          if (openDropdown.classList.contains('show')) {
-            openDropdown.classList.remove('show');
-          }
-        }
-      }
-    });
+  document.querySelector(".create-btn").onclick = () => {
+    form.reset();
+    document.getElementById("edit_id").value = "";
+    modal.style.display = "block";
+  };
 
-    const modal = document.getElementById("announcementModal");
-    const createBtn = document.querySelector(".create-btn");
+  function closeModal() {
+    modal.style.display = "none";
+  }
 
-    // Show modal
-    createBtn.onclick = () => {
-      clearForm();
-      editingCard = null;
+  window.onclick = (e) => {
+    if (e.target === modal) closeModal();
+  };
+
+  document.querySelectorAll(".edit").forEach((btn) => {
+    btn.onclick = () => {
       modal.style.display = "block";
+      document.getElementById("edit_id").value = btn.dataset.id;
+      document.getElementById("title").value = btn.dataset.title;
+      document.getElementById("date").value = btn.dataset.date;
+      document.getElementById("category").value = btn.dataset.category;
+      document.getElementById("description").value = btn.dataset.description;
     };
-
-    function closeModal() {
-      modal.style.display = "none";
-    }
-
-    // Close modal on background click
-    window.onclick = (e) => {
-      if (e.target === modal) closeModal();
-    };
-
-    // Clear modal form
-    function clearForm() {
-      document.getElementById("title").value = "";
-      document.getElementById("date").value = "";
-      document.getElementById("category").value = "infrastructure";
-      document.getElementById("description").value = "";
-    }
-
-    let editingCard = null;
-
-    document.querySelectorAll(".edit").forEach((btn) => {
-      btn.addEventListener("click", function () {
-        const card = this.closest(".announcement-card");
-        editingCard = card;
-
-        const title = card.querySelector("h3").innerText;
-        const dateText = card.querySelector("p strong")?.nextSibling?.textContent.trim();
-        const description = card.querySelectorAll("p")[1].innerText;
-        const category = card.querySelector(".badge")?.innerText;
-
-        document.getElementById("title").value = title;
-        document.getElementById("date").value = dateText || "";
-        document.getElementById("description").value = description;
-
-        if (category.includes("Infrastructure")) {
-          document.getElementById("category").value = "infrastructure";
-        } else if (category.includes("Emergency")) {
-          document.getElementById("category").value = "emergency";
-        } else {
-          document.getElementById("category").value = "community";
-        }
-
-        modal.style.display = "block";
-      });
-    });
-
-    // Archive button hides the card
-    document.querySelectorAll(".archive").forEach((btn) => {
-      btn.addEventListener("click", function () {
-        const card = this.closest(".announcement-card");
-        card.style.display = "none";
-      });
-    });
-
-    document.getElementById("announcementForm").addEventListener("submit", function (e) {
-
-      const title = document.getElementById("title").value;
-      const date = document.getElementById("date").value;
-      const category = document.getElementById("category").value;
-      const description = document.getElementById("description").value;
-
-      const categoryLabel = {
-        infrastructure: "Infrastructure Updates",
-        emergency: "Emergency Alerts",
-        community: "Community Updates"
-      };
-
-      if (editingCard) {
-        editingCard.querySelector("h3").innerText = title;
-        editingCard.querySelectorAll("p")[0].innerHTML = `<strong>Date:</strong> ${date}`;
-        editingCard.querySelectorAll("p")[1].innerText = description;
-
-        const badge = editingCard.querySelector(".badge");
-        if (badge) {
-          badge.innerText = categoryLabel[category];
-          badge.className = `badge ${category}`;
-        }
-      }
-
-      editingCard = null;
-      closeModal();
-    });
-  </script>
+  });
+</script>
 </body>
 </html>
