@@ -131,6 +131,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <option value="Resident">Resident</option>
                         <option value="Barangay Official">Barangay Official</option>
                         <option value="Maintenance Team">Maintenance Team</option>
+                        <option value="admin">Admin</option>
                     </select>
                 </div>
                 <div class="input-group">
