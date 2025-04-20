@@ -63,9 +63,10 @@ $summary = mysqli_fetch_assoc(mysqli_query($conn, "
     <section class="dashboard-overview">
       <h2>Dashboard Overview</h2>
       <div class="overview-cards">
-        <div class="card"><h3>Total Reports</h3><p><?= $summary['total_reports'] ?></p></div>
-        <div class="card"><h3>Resolved</h3><p><?= $summary['resolved'] ?></p></div>
-        <div class="card"><h3>Pending</h3><p><?= $summary['pending'] ?></p></div>
+        <div class="card"><h3>Total Reports</h3><p><?= $summary['total_reports'] ?? 0 ?></p></div>
+        <div class="card"><h3>Resolved</h3><p><?= $summary['resolved'] ?? 0 ?></p></div>
+        <div class="card"><h3>Pending</h3><p><?= $summary['pending'] ?? 0 ?></p></div>
+
       </div>
     </section>
 
