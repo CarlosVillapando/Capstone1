@@ -3,7 +3,7 @@ session_start();
 require 'db.php';
 
 // Pagination setup
-$limit = 5; // cards per page
+$limit = 3; // cards per page
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
