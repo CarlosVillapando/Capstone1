@@ -92,10 +92,11 @@ $activityResult = mysqli_query($conn, "
       ?>
       
       <div class="overview">
-        <div class="box blue">Total Issues<br><strong><?= $counts['total_issues'] ?></strong></div>
-        <div class="box green">Resolved Issues<br><strong><?= $counts['resolved_issues'] ?></strong></div>
-        <div class="box yellow">Pending Issues<br><strong><?= $counts['pending_issues'] ?></strong></div>
+        <div class="box blue">Total Issues<br><strong><?= $counts['total_issues'] ?? 0 ?></strong></div>
+        <div class="box green">Resolved Issues<br><strong><?= $counts['resolved_issues'] ?? 0 ?></strong></div>
+        <div class="box yellow">Pending Issues<br><strong><?= $counts['pending_issues'] ?? 0 ?></strong></div>
       </div>
+
 
 
       <div class="reports">
