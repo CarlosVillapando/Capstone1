@@ -78,11 +78,25 @@ $activityResult = mysqli_query($conn, "
 
     <section class="dashboard">
       <h2>Dashboard Overview</h2>
+      <?php
+      // Live Issue Counts
+      $countQuery = "
+        SELECT 
+          COUNT(*) AS total_issues,
+          SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) AS resolved_issues,
+          SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending_issues
+        FROM issues
+      ";
+      $countResult = mysqli_query($conn, $countQuery);
+      $counts = mysqli_fetch_assoc($countResult);
+      ?>
+      
       <div class="overview">
-        <div class="box blue">Total Issues<br><strong>247</strong></div>
-        <div class="box green">Resolved Issues<br><strong>225</strong></div>
-        <div class="box yellow">Pending Issues<br><strong>22</strong></div>
+        <div class="box blue">Total Issues<br><strong><?= $counts['total_issues'] ?></strong></div>
+        <div class="box green">Resolved Issues<br><strong><?= $counts['resolved_issues'] ?></strong></div>
+        <div class="box yellow">Pending Issues<br><strong><?= $counts['pending_issues'] ?></strong></div>
       </div>
+
 
       <div class="reports">
         <h3>Recent Reports</h3>
