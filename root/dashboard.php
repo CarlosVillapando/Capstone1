@@ -1,3 +1,21 @@
+<?php
+session_start();
+require 'db.php';
+
+// Get user info (optional, based on session)
+$user_id = $_SESSION['user_id'] ?? null;
+$user_name = $_SESSION['user_name'] ?? 'Admin';
+
+// Fetch recent activities
+$activityResult = mysqli_query($conn, "
+  SELECT description, created_at 
+  FROM user_activity 
+  ORDER BY created_at DESC 
+  LIMIT 10
+");
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -89,14 +107,12 @@
       <div class="activities">
         <h3>Recent Activities</h3>
         <ul>
-          <li>10:00 AM - Resident: Villapando - Reported a pothole on Kalayaan St.</li>
-          <li>12:54 PM - Barangay Official - Submitted report ISSUE-246</li>
-          <li>3:28 PM - Maintenance Team - Updated status of ISSUE-238</li>
+          <?php while ($row = mysqli_fetch_assoc($activityResult)): ?>
+            <li><?= date("h:i A", strtotime($row['created_at'])) ?> - <?= htmlspecialchars($row['description']) ?></li>
+          <?php endwhile; ?>
         </ul>
       </div>
-    </section>
-  </div>
-
+      
   <!-- Profile Modal -->
   <div id="profileModal" class="modal">
     <div class="modal-content">
