@@ -39,7 +39,7 @@ $counts = mysqli_fetch_assoc($countResult);
     <h2>STREETFIX</h2>
     <ul>
         <li class="active"><a href="dashboard.php">🏠 Dashboard</a></li>
-        <li><a href="progress_tracking.php">🚲 Progress Tracking</a></li>
+        <li><a href="progress_tracking.php">🛠 Progress Tracking</a></li>
         <li><a href="announcement.php">🔔 Announcements</a></li>
         <li><a href="reports_analytics.php">📈 Reports & Analytics</a></li>
     </ul>
