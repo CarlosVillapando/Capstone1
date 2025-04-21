@@ -32,28 +32,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // File upload (proof of residency)
             $proof_file = null;
             if (!empty($_FILES['proof']['name'])) {
-                $target_dir = "uploads/";
-                if (!is_dir($target_dir)) {
-                    mkdir($target_dir, 0777, true);
+                $upload_dir = __DIR__ . "/uploads/";
+                $upload_name = time() . "_" . basename($_FILES["proof"]["name"]);
+                $target_path = $upload_dir . $upload_name;
+            
+                // Ensure folder exists
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0777, true);
                 }
             
-                $imageFileType = strtolower(pathinfo($_FILES["proof"]["name"], PATHINFO_EXTENSION));
-                $allowedTypes = ["jpg", "jpeg", "png", "gif"];
+                // Check file type and size (optional but recommended)
+                $allowed_types = ['jpg', 'jpeg', 'png', 'pdf'];
+                $file_ext = strtolower(pathinfo($target_path, PATHINFO_EXTENSION));
             
-                if (!in_array($imageFileType, $allowedTypes)) {
-                    $error = "Invalid file type. Only JPG, JPEG, PNG, and GIF are allowed.";
-                } elseif ($_FILES["proof"]["size"] > 500000) {
-                    $error = "File is too large. Maximum 500KB allowed.";
-                } elseif (getimagesize($_FILES["proof"]["tmp_name"]) === false) {
-                    $error = "Uploaded file is not a valid image.";
+                if (!in_array($file_ext, $allowed_types)) {
+                    $error = "Invalid file type. Only JPG, PNG, and PDF are allowed.";
+                } elseif ($_FILES["proof"]["size"] > 5 * 1024 * 1024) {
+                    $error = "File too large. Max size is 5MB.";
                 } else {
-                    $unique_filename = time() . "_" . basename($_FILES["proof"]["name"]);
-                    $proof_file = $target_dir . $unique_filename;
-                    if (!move_uploaded_file($_FILES["proof"]["tmp_name"], $proof_file)) {
-                        $error = "Error uploading the file.";
+                    // Move file
+                    if (move_uploaded_file($_FILES["proof"]["tmp_name"], $target_path)) {
+                        // Save path relative to project root
+                        $proof_file = "uploads/" . $upload_name;
+                    } else {
+                        $error = "Failed to upload proof of residency.";
                     }
                 }
             }
+
 
 
             // Insert new user
