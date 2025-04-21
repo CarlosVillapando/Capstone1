@@ -36,9 +36,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if (!is_dir($target_dir)) {
                     mkdir($target_dir, 0777, true);
                 }
-                $proof_file = $target_dir . basename($_FILES["proof"]["name"]);
-                move_uploaded_file($_FILES["proof"]["tmp_name"], $proof_file);
+            
+                $imageFileType = strtolower(pathinfo($_FILES["proof"]["name"], PATHINFO_EXTENSION));
+                $allowedTypes = ["jpg", "jpeg", "png", "gif"];
+            
+                if (!in_array($imageFileType, $allowedTypes)) {
+                    $error = "Invalid file type. Only JPG, JPEG, PNG, and GIF are allowed.";
+                } elseif ($_FILES["proof"]["size"] > 500000) {
+                    $error = "File is too large. Maximum 500KB allowed.";
+                } elseif (getimagesize($_FILES["proof"]["tmp_name"]) === false) {
+                    $error = "Uploaded file is not a valid image.";
+                } else {
+                    $unique_filename = time() . "_" . basename($_FILES["proof"]["name"]);
+                    $proof_file = $target_dir . $unique_filename;
+                    if (!move_uploaded_file($_FILES["proof"]["tmp_name"], $proof_file)) {
+                        $error = "Error uploading the file.";
+                    }
+                }
             }
+
 
             // Insert new user
             $stmt = $conn->prepare("INSERT INTO users (first_name, last_name, street_address, city, state_province, postal_zip_code, phone_number, email, role, proof_of_residency, password_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
