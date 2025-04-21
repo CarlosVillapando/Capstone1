@@ -32,33 +32,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // File upload (proof of residency)
             $proof_file = null;
             if (!empty($_FILES['proof']['name'])) {
-                $upload_dir = __DIR__ . "/uploads/";
-                $upload_name = time() . "_" . basename($_FILES["proof"]["name"]);
-                $target_path = $upload_dir . $upload_name;
+                $unique_name = time() . "_" . basename($_FILES["proof"]["name"]);
+                $upload_temp_dir = sys_get_temp_dir(); // Safe writable temp directory
+                $target_path = $upload_temp_dir . DIRECTORY_SEPARATOR . $unique_name;
             
-                // Ensure folder exists
-                if (!is_dir($upload_dir)) {
-                    mkdir($upload_dir, 0777, true);
-                }
-            
-                // Check file type and size (optional but recommended)
-                $allowed_types = ['jpg', 'jpeg', 'png', 'pdf'];
-                $file_ext = strtolower(pathinfo($target_path, PATHINFO_EXTENSION));
-            
-                if (!in_array($file_ext, $allowed_types)) {
-                    $error = "Invalid file type. Only JPG, PNG, and PDF are allowed.";
+                // Optional: file type check
+                $allowed = ['jpg', 'jpeg', 'png', 'pdf'];
+                $ext = strtolower(pathinfo($target_path, PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowed)) {
+                    $error = "Only JPG, PNG, and PDF are allowed.";
                 } elseif ($_FILES["proof"]["size"] > 5 * 1024 * 1024) {
-                    $error = "File too large. Max size is 5MB.";
+                    $error = "File too large. Max 5MB.";
                 } else {
-                    // Move file
                     if (move_uploaded_file($_FILES["proof"]["tmp_name"], $target_path)) {
-                        // Save path relative to project root
-                        $proof_file = "uploads/" . $upload_name;
+                        // Save just the filename in DB for now
+                        $proof_file = $unique_name;
                     } else {
-                        $error = "Failed to upload proof of residency.";
+                        $error = "Upload failed. Railway file system may be locked.";
                     }
                 }
             }
+
 
 
 
